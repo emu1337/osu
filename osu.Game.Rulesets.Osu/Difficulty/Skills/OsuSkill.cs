@@ -14,46 +14,31 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 {
     public abstract class OsuSkill : Skill
     {
-        private readonly List<double> strains = new List<double>();
-
-        protected virtual int decayExcessThreshold => 500;
-        protected virtual double baseDecay => .75;
-
-        protected virtual double StarsPerDouble => 1.0;
+        private double starRatingConstant = .6345;
 
         protected OsuSkill(Mod[] mods) : base(mods)
         {
         }
 
         /// <summary>
-        /// The calculated strain value associated with this <see cref="DifficultyHitObject"/>.
-        /// </summary>
-        /// <param name="current">The current DifficultyHitObject being processed.</param>
-        protected abstract double strainValueAt(DifficultyHitObject current);
-
-        /// <summary>
         /// Utility to decay strain over a period of deltaTime.
         /// </summary>
         /// <param name="baseDecay">The rate of decay per object.</param>
         /// <param name="deltaTime">The time between objects.</param>
-        protected double computeDecay(double baseDecay, double deltaTime)
+        /// <param name="beginDecayThreshold">The maximum time between objects before strain will begin decaying geometrically.</param>
+        protected double computeDecay(double baseDecay, double deltaTime, double beginDecayThreshold)
         {
             double decay = 0;
-            if (deltaTime < decayExcessThreshold)
+            if (deltaTime < beginDecayThreshold)
                 decay = baseDecay;
-            else // Beyond 500 MS (or whatever decayExcessThreshold is), we decay geometrically to avoid keeping strain going over long breaks.
-                decay = Math.Pow(Math.Pow(baseDecay, 1000 / Math.Min(deltaTime, decayExcessThreshold)), deltaTime / 1000);
+            else // Beyond 500 MS (or whatever beginDecayThreshold is), we decay geometrically to avoid keeping strain going over long breaks.
+                decay = Math.Pow(Math.Pow(baseDecay, 1000 / Math.Min(deltaTime, beginDecayThreshold)), deltaTime / 1000);
 
             return decay;
         }
 
-        protected override void Process(DifficultyHitObject current)
-        {
-            strains.Add(strainValueAt(current));
-        }
-
         /// <summary>
-        /// The total summarized difficulty value of all strains for every <see cref="DifficultyHitObject"/> in the beatmap.
+        /// The total derived difficulty from the list of strains based on the starsPerDouble.
         /// </summary>
         protected double calculateDifficultyValue(List<double> strains, double starsPerDouble)
         {
@@ -71,6 +56,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
             return Math.Pow(SR, 1.0 / difficultyExponent);
         }
 
+        /// <summary>
+        /// Derives the combined star rating for two seperate star ratings based on the starsPerDouble.
+        /// </summary>
         public double combineStarRating(double first, double second, double starsPerDouble)
         {
             double difficultyExponent = 1.0 / Math.Log(starsPerDouble, 2);
@@ -79,13 +67,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         }
 
         /// <summary>
-        /// The peak difficulty value of the map. Used to calculate the total star rating.
+        /// Calculates the display difficulty value for a given list of strains.
         /// </summary>
-        public double CalculateDisplayDifficultyValue()
+        public double calculateDisplayDifficultyValue(List<double> strains, double starsPerDouble)
         {
             double difficulty = 0;
             double weight = 1;
-            double decayWeight = 0.9;
+            double decayWeight = 0.95;
 
             // Difficulty is the weighted sum of the highest strains from every section.
             // We're sorting from highest to lowest strain.
@@ -95,12 +83,16 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                 weight *= decayWeight;
             }
 
-            return difficulty;
+            return difficulty * starRatingConstant;
         }
 
-        public override double DifficultyValue()
-        {
-            return calculateDifficultyValue(strains, StarsPerDouble);
-        }
+        /// <summary>
+        /// Returns the calculated display difficulty value representing all <see cref="DifficultyHitObject"/>s that have been processed up to this point.
+        /// </summary>
+        public abstract double DisplayDifficultyValue();
+
+        protected override abstract void Process(DifficultyHitObject current);
+
+        public override abstract double DifficultyValue();
     }
 }

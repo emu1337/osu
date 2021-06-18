@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using osu.Game.Rulesets.Difficulty.Preprocessing;
 using osu.Game.Rulesets.Difficulty.Skills;
 using osu.Game.Rulesets.Mods;
@@ -18,21 +19,24 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
     /// </summary>
     public class Tap : OsuSkill
     {
-        protected override double StarsPerDouble => 1.075;
         protected override int HistoryLength => 32;
-        protected override int decayExcessThreshold => 500;
-        protected override double baseDecay => 0.9;
 
-        private int strainTimeBuffRange = 75;
-        private double minStrainTime = 50;
+        private double starsPerDouble => 1.075;
+
+        private List<double> strains = new List<double>();
 
         private double currentStrain = 1;
         private double singleStrain = 1;
 
+        private double baseDecay => 0.9;
+        private int beginDecayThreshold => 500;
+        private int strainTimeBuffRange = 75;
+        private double avgStrainTime = 50;
+
         // Global Tap Strain Multiplier.
         private double singleMultiplier = 1.575;
-        private double strainMultiplier = 1.8125;
-        private double rhythmMultiplier = 1;
+        private double strainMultiplier = 1.75;
+        private double rhythmMultiplier = 1.0;
 
         public Tap(Mod[] mods)
             : base(mods)
@@ -70,8 +74,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                         specialTransitionCount += 500.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength);
                 }
 
-                if (currDelta < minStrainTime)
-                    minStrainTime = currDelta;
+                if (i < Previous.Count)
+                    avgStrainTime += currDelta;
 
                 if (firstDeltaSwitch)
                 {
@@ -128,41 +132,53 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
             rhythmComplexitySum += specialTransitionCount; // add in our 1.5 * transitions
 
+            avgStrainTime /= (Previous.Count);
+
             return Math.Sqrt(4 + rhythmComplexitySum * rhythmMultiplier) / 2;
         }
 
-        protected override double strainValueAt(DifficultyHitObject current)
+        protected override void Process(DifficultyHitObject current)
         {
-            if (current.BaseObject is Spinner || Previous.Count == 0)
-                return 0;
+            if (Previous.Count > 0)
+            {
+                var osuCurrObj = (OsuDifficultyHitObject)current;
 
-            var osuCurrent = (OsuDifficultyHitObject)current;
+                double strainValue = .25;
 
-            double strainValue = .25;
+                double strainTime = (Math.Max(50, current.DeltaTime) + Math.Max(50, Previous[0].DeltaTime)) / 2;
 
-            double avgDeltaTime = (Math.Max(50, current.DeltaTime) + Math.Max(50, Previous[0].DeltaTime)) / 2;
-            // double avgDeltaTime = (osuCurrent.StrainTime + Math.Max(50, Previous[0].DeltaTime)) / 2;
+                double rhythmComplexity = calculateRhythmDifficulty(); // equals 1 with no rhythm difficulty, otherwise scales with a sqrt
 
-            double rhythmComplexity = calculateRhythmDifficulty(); // equals 1 with no rhythm difficulty, otherwise scales with a sqrt
+                strainTime = (strainTime - 25);
 
-            avgDeltaTime = (avgDeltaTime - 25);
+                strainValue += strainTimeBuffRange / strainTime;
 
-            strainValue += strainTimeBuffRange / avgDeltaTime;
-
-            // if (strainTimeBuffRange / avgDeltaTime > 1) // scale tap value for high BPM (above 200).
-            //     strainValue += Math.Pow(strainTimeBuffRange / avgDeltaTime, 2);
+            // if (strainTimeBuffRange / strainTime > 1) // scale tap value for high BPM (above 200).
+            //     strainValue += Math.Pow(strainTimeBuffRange / strainTime, 2);
             // else
-            //     strainValue += Math.Pow(strainTimeBuffRange / avgDeltaTime, 1);
+            //     strainValue += Math.Pow(strainTimeBuffRange / strainTime, 1);
 
-            singleStrain *= computeDecay(baseDecay, osuCurrent.StrainTime);
-            singleStrain += (1.0 + osuCurrent.SnapProbability) * strainValue * singleMultiplier;
+                singleStrain *= computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold);
+                singleStrain += (1.0 + osuCurrObj.SnapProbability) * strainValue * singleMultiplier;
 
-            currentStrain *= Math.Pow(computeDecay(baseDecay, osuCurrent.StrainTime), Math.Sqrt(osuCurrent.StrainTime / minStrainTime));
-            currentStrain += strainValue * strainMultiplier;
+                currentStrain *= Math.Pow(computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold), Math.Max(1, osuCurrObj.StrainTime / avgStrainTime));
+                currentStrain += strainValue * strainMultiplier;
 
-            return Math.Max(Math.Min((1 / (1 - baseDecay)) * strainValue * strainMultiplier, // prevent over buffing strain past death stream level
-                                      currentStrain * rhythmComplexity),
-                            singleStrain); // we use a seperate strain for singles to not complete nuke boring 1-2 maps
+                strains.Add(Math.Max(Math.Min((1 / (1 - baseDecay)) * strainValue * strainMultiplier, // prevent over buffing strain past death stream level
+                                          currentStrain * rhythmComplexity),
+                                singleStrain)); // we use a seperate strain for singles to not complete nuke boring 1-2 maps
+            }
+        }
+
+
+        public override double DisplayDifficultyValue()
+        {
+            return calculateDisplayDifficultyValue(strains, starsPerDouble);
+        }
+
+        public override double DifficultyValue()
+        {
+            return calculateDifficultyValue(strains, starsPerDouble);
         }
     }
 }

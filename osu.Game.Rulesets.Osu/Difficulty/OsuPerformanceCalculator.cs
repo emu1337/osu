@@ -101,7 +101,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 approachRateFactor += 0.05 * (8.0 - Attributes.ApproachRate);
 
             // scale aim with AR, sensitive to object count
-            aimValue *= 1.0 + approachRateFactor * (.33 + .66 * Math.Min(1, totalHits / 1000));
+            aimValue *= 1.0 + approachRateFactor * (.33 + .67 * Math.Min(1, totalHits / 1000));
 
             // We want to give more reward for lower AR when it comes to aim and HD. This nerfs high AR and buffs lower AR.
             if (mods.Any(h => h is OsuModHidden))
@@ -146,9 +146,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             // scale speed sensitive to AR, without respect to object count.
             speedValue *= 1.0 + approachRateFactor;
-
+//Math.Pow(accuracy, 2.75)
             // Scale the speed value with accuracy and OD
-            speedValue *= (0.575 + Math.Pow(Attributes.OverallDifficulty, 2) / 250) * Math.Pow(accuracy, 2.75);//(14.5 - Math.Max(Attributes.OverallDifficulty, 8)) / 2);
+            speedValue *= (0.575 + Math.Pow(Attributes.OverallDifficulty, 2) / 250) * Math.Pow(accuracy, (14.5 - Math.Max(Attributes.OverallDifficulty, 8)) / 2);
             // Scale the speed value with # of 50s to punish doubletapping.
             speedValue *= Math.Pow(0.98, countMeh < totalHits / 500.0 ? 0 : countMeh - totalHits / 500.0);
 
@@ -166,7 +166,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             double p100 = (2 * (double)countOk) / amountHitObjectsWithAccuracy;
             double p50 = (2 * (double)countMeh) / amountHitObjectsWithAccuracy;
-            double pm = (2 * (double)countMiss) / amountHitObjectsWithAccuracy;
+            double pm = (1 * (double)countMiss) / amountHitObjectsWithAccuracy;
             double p300 = 1.0 - pm - p100 - p50;
 
             double m300 = 79.5 - 6.0 * Attributes.OverallDifficulty;
