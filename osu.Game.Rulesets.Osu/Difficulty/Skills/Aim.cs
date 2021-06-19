@@ -20,9 +20,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         protected override int HistoryLength => 2;
 
         // Global Constants for interpolating difficulty between objects SRs
-        private double snapStarsPerDouble = 1.125;
+        private double snapStarsPerDouble = 1.1;
         private double flowStarsPerDouble = 1.1;
-        private double combinedStarsPerDouble = 1.15;
+        private double combinedStarsPerDouble = 1.175;
 
         private double currOtherStrain = 1;
         private double currSnapStrain = 1;
@@ -36,7 +36,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private double distanceConstant = 3.5;
 
         // Global Constants for the different types of aim.
-        private double snapStrainMultiplier = 6.727;
+        private double snapStrainMultiplier = 8.2727;
         private double flowStrainMultiplier = 16.272;
         private double hybridStrainMultiplier = 0;//15;//30.727;
         private double sliderStrainMultiplier = 65;
@@ -74,9 +74,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                                 + nextVector.Length * osuNextObj.FlowProbability)
                                   / Math.Max(1, osuPrevObj.FlowProbability + osuCurrObj.FlowProbability + osuNextObj.FlowProbability);
 
-            double velVariance = Math.Min(averageVel, (0.5 + 0.5 * osuPrevObj.FlowProbability) * Math.Abs(averageVel - prevVector.Length )
-                                                    + (0.5 + 0.5 * osuCurrObj.FlowProbability) * Math.Abs(averageVel - currVector.Length)
-                                                    + (0.5 + 0.5 * osuNextObj.FlowProbability) * Math.Abs(averageVel - nextVector.Length)) / 3;
+            double velVariance = Math.Min(averageVel, //(0.5 + 0.5 * osuPrevObj.FlowProbability) * Math.Abs(averageVel - prevVector.Length)
+                                                    (0.25 + 0.75 * osuCurrObj.FlowProbability) * Math.Abs(averageVel - currVector.Length)) / 3;
+                                                  //+ (0.5 + 0.5 * osuNextObj.FlowProbability) * Math.Abs(averageVel - nextVector.Length)) / 2;
 
             double angularVariance = Math.Min(currVector.Length * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuNextObj.Angle - osuCurrObj.Angle)),
                                               currVector.Length * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuPrevObj.Angle - osuCurrObj.Angle))) / (4 * Math.PI);

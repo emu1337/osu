@@ -26,7 +26,6 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private List<double> strains = new List<double>();
 
         private double currentStrain = 1;
-        private double singleStrain = 1;
 
         private double baseDecay => 0.9;
         private int beginDecayThreshold => 500;
@@ -34,9 +33,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private double avgStrainTime = 50;
 
         // Global Tap Strain Multiplier.
-        private double singleMultiplier = 1.575;
         private double strainMultiplier = 1.75;
-        private double rhythmMultiplier = 1.0;
+        private double rhythmMultiplier = 0.5;
 
         public Tap(Mod[] mods)
             : base(mods)
@@ -70,9 +68,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                 if (isRatioEqual(1.5, prevDelta, currDelta) || isRatioEqual(1.5, currDelta, prevDelta))
                 {
                     if (Previous[i - 1].BaseObject is Slider || Previous[i].BaseObject is Slider)
-                        specialTransitionCount += 250.0 / geoAvgDelta * ((double)i / HistoryLength);
+                        specialTransitionCount += 100.0 / geoAvgDelta * ((double)i / HistoryLength);
                     else
-                        specialTransitionCount += 500.0 / geoAvgDelta * ((double)i / HistoryLength);
+                        specialTransitionCount += 200.0 / geoAvgDelta * ((double)i / HistoryLength);
                 }
 
                 if (i < Previous.Count)
@@ -152,20 +150,10 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
                 strainValue += strainTimeBuffRange / strainTime;
 
-            // if (strainTimeBuffRange / strainTime > 1) // scale tap value for high BPM (above 200).
-            //     strainValue += Math.Pow(strainTimeBuffRange / strainTime, 2);
-            // else
-            //     strainValue += Math.Pow(strainTimeBuffRange / strainTime, 1);
-
-                singleStrain *= computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold);
-                singleStrain += (1.0 + osuCurrObj.SnapProbability) * strainValue * singleMultiplier;
-
                 currentStrain *= Math.Pow(computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold), Math.Max(1, osuCurrObj.StrainTime / avgStrainTime));
-                currentStrain += strainValue * strainMultiplier;
+                currentStrain += (1.0 + 0.5 * osuCurrObj.SnapProbability) * strainValue * strainMultiplier;
 
-                strains.Add(Math.Max(Math.Min(Math.Max((1 / (1 - baseDecay)) * strainValue * strainMultiplier, (1 / (1 - baseDecay)) * 75 / (avgStrainTime - 25) * strainMultiplier),// prevent over buffing strain past death stream level
-                                          currentStrain * rhythmComplexity),
-                                singleStrain)); // we use a seperate strain for singles to not complete nuke boring 1-2 maps
+                strains.Add(currentStrain * rhythmComplexity);
             }
         }
 
