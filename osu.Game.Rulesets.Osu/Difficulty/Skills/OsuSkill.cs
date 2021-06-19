@@ -14,7 +14,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 {
     public abstract class OsuSkill : Skill
     {
-        private double starRatingConstant = .6345;
+        private double starRatingConstant = .6261; // 7.27* with hr
+        // private double starRatingConstant = .6752; // 7.27* without hr
 
         protected OsuSkill(Mod[] mods) : base(mods)
         {

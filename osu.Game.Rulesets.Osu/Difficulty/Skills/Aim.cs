@@ -74,19 +74,15 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                                 + nextVector.Length * osuNextObj.FlowProbability)
                                   / Math.Max(1, osuPrevObj.FlowProbability + osuCurrObj.FlowProbability + osuNextObj.FlowProbability);
 
-            double averageAngle = (osuPrevObj.Angle + osuCurrObj.Angle + osuNextObj.Angle) / 3;
-
             double velVariance = Math.Min(averageVel, (0.5 + 0.5 * osuPrevObj.FlowProbability) * Math.Abs(averageVel - prevVector.Length )
                                                     + (0.5 + 0.5 * osuCurrObj.FlowProbability) * Math.Abs(averageVel - currVector.Length)
                                                     + (0.5 + 0.5 * osuNextObj.FlowProbability) * Math.Abs(averageVel - nextVector.Length)) / 3;
 
-            double angularVariance = (//osuPrevObj.FlowProbability * Math.Abs(averageAngle - osuPrevObj.Angle)
-                                      osuCurrObj.FlowProbability * Math.Abs(averageAngle - osuCurrObj.Angle)
-                                      + osuNextObj.FlowProbability * Math.Abs(averageAngle - osuNextObj.Angle)) / (4 * Math.PI);
+            double angularVariance = Math.Min(currVector.Length * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuNextObj.Angle - osuCurrObj.Angle)),
+                                              currVector.Length * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuPrevObj.Angle - osuCurrObj.Angle))) / (4 * Math.PI);
 
             strain = (osuPrevObj.FlowProbability + osuCurrObj.FlowProbability + osuNextObj.FlowProbability)
-                    * (averageVel + Math.Max(angularVariance * averageVel,
-                       velVariance));
+                    * (averageVel + Math.Max(angularVariance, velVariance));
 
             return  strain;
         }

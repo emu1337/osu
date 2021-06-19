@@ -54,7 +54,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private double calculateRhythmDifficulty()
         {
             // {doubles, triplets, quads, quints, 6-tuplets, 7 Tuplets, greater}
-            double[] islandSizes = {0, 0, 0, 0, 0, 0, 0};
+            int previousIslandSize = -1;
             double[] islandTimes = {0, 0, 0, 0, 0, 0, 0};
             int islandSize = 0;
             double specialTransitionCount = 0;
@@ -65,13 +65,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
             {
                 double prevDelta = ((OsuDifficultyHitObject)Previous[i - 1]).StrainTime;
                 double currDelta = ((OsuDifficultyHitObject)Previous[i]).StrainTime;
+                double geoAvgDelta = Math.Sqrt(prevDelta * currDelta);
 
                 if (isRatioEqual(1.5, prevDelta, currDelta) || isRatioEqual(1.5, currDelta, prevDelta))
                 {
                     if (Previous[i - 1].BaseObject is Slider || Previous[i].BaseObject is Slider)
-                        specialTransitionCount += 250.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength);
+                        specialTransitionCount += 250.0 / geoAvgDelta * ((double)i / HistoryLength);
                     else
-                        specialTransitionCount += 500.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength);
+                        specialTransitionCount += 500.0 / geoAvgDelta * ((double)i / HistoryLength);
                 }
 
                 if (i < Previous.Count)
@@ -87,31 +88,27 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                     {
                         if (islandSize > 6)
                         {
-                            islandTimes[6] = islandTimes[6] + 100.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength);
-                            islandSizes[6] = islandSizes[6] + 1;
+                            if (previousIslandSize == 6)
+                                islandTimes[6] = islandTimes[6] + 100.0 / geoAvgDelta * ((double)i / HistoryLength);
+                            else
+                                islandTimes[6] = islandTimes[6] + 200.0 / geoAvgDelta * ((double)i / HistoryLength);
+
+                            previousIslandSize = 6;
                         }
                         else
                         {
-                            islandTimes[islandSize] = islandTimes[islandSize] + 100.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength);
-                            islandSizes[islandSize] = islandSizes[islandSize] + 1;
+                            if (previousIslandSize == islandSize)
+                                islandTimes[islandSize] = islandTimes[islandSize] + 100.0 / geoAvgDelta * ((double)i / HistoryLength);
+                            else
+                                islandTimes[islandSize] = islandTimes[islandSize] + 200.0 / geoAvgDelta * ((double)i / HistoryLength);
+
+                            previousIslandSize = islandSize;
                         }
+
+                        if (prevDelta > currDelta * 1.25) // we're not the same or speeding up, must be slowing down
+                            firstDeltaSwitch = false;
 
                         islandSize = 0; // reset and count again, we sped up (usually this could only be if we did a 1/2 -> 1/3 -> 1/4) (or 1/1 -> 1/2 -> 1/4)
-                    }
-                    else // we're not the same or speeding up, must be slowing down.
-                    {
-                        if (islandSize > 6)
-                        {
-                            islandTimes[6] = islandTimes[6] + 100.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength);
-                            islandSizes[6] = islandSizes[6] + 1;
-                        }
-                        else
-                        {
-                            islandTimes[islandSize] = islandTimes[islandSize] + 100.0 / Math.Sqrt(prevDelta * currDelta) * ((double)i / HistoryLength) ;
-                            islandSizes[islandSize] = islandSizes[islandSize] + 1;
-                        }
-
-                        firstDeltaSwitch = false; // stop counting island until next speed up.
                     }
                 }
                 else if (prevDelta >  1.25 * currDelta) // we want to be speeding up.
@@ -124,10 +121,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
             double rhythmComplexitySum = 0.0;
 
-            for (int i = 0; i < islandSizes.Length; i++)
+            for (int i = 0; i < islandTimes.Length; i++)
             {
-                if (islandSizes[i] != 0)
-                    rhythmComplexitySum += islandTimes[i] / Math.Pow(islandSizes[i], .5); // sum the total amount of rhythm variance, penalizing for repeated island sizes.
+                rhythmComplexitySum += islandTimes[i]; // sum the total amount of rhythm variance
             }
 
             rhythmComplexitySum += specialTransitionCount; // add in our 1.5 * transitions
@@ -145,7 +141,10 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
                 double strainValue = .25;
 
-                double strainTime = (Math.Max(50, current.DeltaTime) + Math.Max(50, Previous[0].DeltaTime)) / 2;
+                double strainTime = (current.DeltaTime + Previous[0].DeltaTime) / 2;
+
+                if (strainTime < 50)
+                    strainTime = (strainTime + 150) / 4; //don't want to cap BPM at 300, but also don't want to astro overweight high bpm or div by 0.
 
                 double rhythmComplexity = calculateRhythmDifficulty(); // equals 1 with no rhythm difficulty, otherwise scales with a sqrt
 
@@ -164,7 +163,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                 currentStrain *= Math.Pow(computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold), Math.Max(1, osuCurrObj.StrainTime / avgStrainTime));
                 currentStrain += strainValue * strainMultiplier;
 
-                strains.Add(Math.Max(Math.Min((1 / (1 - baseDecay)) * strainValue * strainMultiplier, // prevent over buffing strain past death stream level
+                strains.Add(Math.Max(Math.Min(Math.Max((1 / (1 - baseDecay)) * strainValue * strainMultiplier, (1 / (1 - baseDecay)) * 75 / (avgStrainTime - 25) * strainMultiplier),// prevent over buffing strain past death stream level
                                           currentStrain * rhythmComplexity),
                                 singleStrain)); // we use a seperate strain for singles to not complete nuke boring 1-2 maps
             }
