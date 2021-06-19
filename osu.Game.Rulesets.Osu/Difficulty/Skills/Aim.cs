@@ -19,10 +19,12 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
     {
         protected override int HistoryLength => 2;
 
+        private int count = 3;
+
         // Global Constants for interpolating difficulty between objects SRs
         private double snapStarsPerDouble = 1.1;
         private double flowStarsPerDouble = 1.1;
-        private double combinedStarsPerDouble = 1.175;
+        private double combinedStarsPerDouble = 1.15;
 
         private double currOtherStrain = 1;
         private double currSnapStrain = 1;
@@ -33,10 +35,10 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
         private double baseDecay => 0.75;
         private int beginDecayThreshold => 500;
-        private double distanceConstant = 3.5;
+        private double snapDistanceConstant = 5;
 
         // Global Constants for the different types of aim.
-        private double snapStrainMultiplier = 8.2727;
+        private double snapStrainMultiplier = 7.3727;
         private double flowStrainMultiplier = 16.272;
         private double hybridStrainMultiplier = 0;//15;//30.727;
         private double sliderStrainMultiplier = 65;
@@ -47,25 +49,21 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         {
         }
 
+
         /// <summary>
         /// Calculates the difficulty to flow from the previous <see cref="OsuDifficultyHitObject"/> the current <see cref="OsuDifficultyHitObject"/>.
         /// </summary>
         private double flowStrainAt(OsuDifficultyHitObject osuPrevObj, OsuDifficultyHitObject osuCurrObj, OsuDifficultyHitObject osuNextObj,
                                     Vector2 prevVector, Vector2 currVector, Vector2 nextVector)
         {
-            // double strain = 0;
-
-            // var observedCurrDistance = currVector;//Vector2.Subtract(currVector, Vector2.Multiply(prevVector, (float)0.1));
-            // var observedPrevDistance = prevVector;//Vector2.Subtract(prevVector, Vector2.Multiply(currVector, (float)0.1));
-            //
-            //
-            // strain = osuCurrObj.FlowProbability * ((0.5 * observedCurrDistance.Length + 0.5 * osuPrevObj.FlowProbability * observedPrevDistance.Length)
-            //          + momentumChange * osuPrevObj.FlowProbability);
-                                // angularMomentumChange * osuPrevObj.FlowProbability));
-
             prevVector = Vector2.Multiply(prevVector, (float)(osuPrevObj.StrainTime / (osuPrevObj.StrainTime - 10)));
             currVector = Vector2.Multiply(currVector, (float)(osuCurrObj.StrainTime / (osuCurrObj.StrainTime - 10)));
             nextVector = Vector2.Multiply(nextVector, (float)(osuNextObj.StrainTime / (osuNextObj.StrainTime - 10)));
+
+            double prevCurrBonusDistance = Math.Max(0, Vector2.Add(currVector, prevVector).Length - Math.Max(currVector.Length, prevVector.Length) / 1.5);
+            double currNextBonusDistance = Math.Max(0, Vector2.Add(currVector, nextVector).Length - Math.Max(currVector.Length, nextVector.Length) / 1.5);
+
+            double minDistance = Math.Min(Math.Min(currVector.Length, prevVector.Length), nextVector.Length);
 
             double strain = 0;
 
@@ -74,15 +72,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                                 + nextVector.Length * osuNextObj.FlowProbability)
                                   / Math.Max(1, osuPrevObj.FlowProbability + osuCurrObj.FlowProbability + osuNextObj.FlowProbability);
 
-            double velVariance = Math.Min(averageVel, //(0.5 + 0.5 * osuPrevObj.FlowProbability) * Math.Abs(averageVel - prevVector.Length)
-                                                    (0.25 + 0.75 * osuCurrObj.FlowProbability) * Math.Abs(averageVel - currVector.Length)) / 3;
-                                                  //+ (0.5 + 0.5 * osuNextObj.FlowProbability) * Math.Abs(averageVel - nextVector.Length)) / 2;
+            double velVariance = .65 * (minDistance * osuCurrObj.FlowProbability * Math.Max(0, averageVel - currVector.Length));
 
-            double angularVariance = Math.Min(currVector.Length * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuNextObj.Angle - osuCurrObj.Angle)),
-                                              currVector.Length * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuPrevObj.Angle - osuCurrObj.Angle))) / (4 * Math.PI);
+            double angularVariance = 0.25 * Math.Min(minDistance * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuNextObj.Angle - osuCurrObj.Angle)),
+                                              minDistance * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Abs(osuPrevObj.Angle - osuCurrObj.Angle)));
+
 
             strain = (osuPrevObj.FlowProbability + osuCurrObj.FlowProbability + osuNextObj.FlowProbability)
-                    * (averageVel + Math.Max(angularVariance, velVariance));
+                    * (averageVel + Math.Max(angularVariance, velVariance));// + minDistance * Math.Max(angularVariance, velVariance));
 
             return  strain;
         }
@@ -95,12 +92,12 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
             if (distance == 0)
                 return 0;
             else
-                return (distanceConstant * Math.Log(1 + distance / distanceConstant) / Math.Log(2)) / distance;
+                return (snapDistanceConstant * Math.Log(1 + distance / snapDistanceConstant) / Math.Log(2)) / distance;
 
-            // if (distance <= distanceConstant)
+            // if (distance <= snapDistanceConstant)
             //     return 1;
             // else
-            //     return (distanceConstant + (distance - distanceConstant) * (Math.Log(1 + (distance - distanceConstant) / Math.Sqrt(2)) / Math.Log(2)) / (distance - distanceConstant)) / distance;
+            //     return (snapDistanceConstant + (distance - snapDistanceConstant) * (Math.Log(1 + (distance - snapDistanceConstant) / Math.Sqrt(2)) / Math.Log(2)) / (distance - snapDistanceConstant)) / distance;
         }
 
         /// <summary>
@@ -111,12 +108,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         {
             double strain = 0;
 
-            currVector = Vector2.Multiply(currVector, (float)(snapScaling(osuCurrObj.JumpDistance / 100) * (osuCurrObj.StrainTime / (osuCurrObj.StrainTime - 20))));
-            prevVector = Vector2.Multiply(prevVector, (float)(snapScaling(osuPrevObj.JumpDistance / 100) * (osuPrevObj.StrainTime / (osuPrevObj.StrainTime - 20))));
-            nextVector = Vector2.Multiply(nextVector, (float)(snapScaling(osuNextObj.JumpDistance / 100) * (osuNextObj.StrainTime / (osuNextObj.StrainTime - 20))));
+            currVector = Vector2.Multiply(currVector, (float)(snapScaling(osuCurrObj.JumpDistance / 100) * (osuCurrObj.StrainTime / (osuCurrObj.StrainTime - 15))));
+            prevVector = Vector2.Multiply(prevVector, (float)(snapScaling(osuPrevObj.JumpDistance / 100) * (osuPrevObj.StrainTime / (osuPrevObj.StrainTime - 15))));
+            nextVector = Vector2.Multiply(nextVector, (float)(snapScaling(osuNextObj.JumpDistance / 100) * (osuNextObj.StrainTime / (osuNextObj.StrainTime - 15))));
 
-            double prevCurrBonusDistance = Math.Max(0, Vector2.Add(currVector, prevVector).Length - Math.Max(currVector.Length, prevVector.Length));
-            double currNextBonusDistance = Math.Max(0, Vector2.Add(currVector, nextVector).Length - Math.Max(currVector.Length, nextVector.Length));
+            double prevSnapBonusDistance = Math.Max(0, Vector2.Add(currVector, prevVector).Length - Math.Max(currVector.Length, prevVector.Length) / 1.5);
+            double prevFlowBonusDistance = .5 * osuPrevObj.FlowProbability * Math.Max(0, Vector2.Subtract(currVector, prevVector).Length - Math.Max(currVector.Length, prevVector.Length) / 1.5);
+
+            double minDistance = Math.Min(Math.Min(currVector.Length, prevVector.Length), nextVector.Length);
 
             double averageVel = (prevVector.Length * osuPrevObj.SnapProbability
                                 + currVector.Length * osuCurrObj.SnapProbability
@@ -124,8 +123,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                                   / Math.Max(1, osuPrevObj.SnapProbability + osuCurrObj.SnapProbability + osuNextObj.SnapProbability);
 
             strain = (osuPrevObj.SnapProbability + osuCurrObj.SnapProbability + osuNextObj.SnapProbability)
-                    * (averageVel + Math.Min(0.25 * averageVel, Math.Max((osuPrevObj.SnapProbability * osuCurrObj.SnapProbability) * prevCurrBonusDistance,
-                            (osuPrevObj.SnapProbability * osuCurrObj.SnapProbability) * currNextBonusDistance) / 2));
+                    * (averageVel + Math.Min(averageVel / 2, prevSnapBonusDistance));
 
             return strain;// * Math.Min(osuNextObj.StrainTime / (osuNextObj.StrainTime - 20), Math.Min(osuCurrObj.StrainTime / (osuCurrObj.StrainTime - 10), osuPrevObj.StrainTime / (osuPrevObj.StrainTime - 10)));
         }
@@ -206,7 +204,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                 currOtherStrain *= computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold);
                 currOtherStrain += hybridStrain * hybridStrainMultiplier + sliderStrain * sliderStrainMultiplier;
 
-                double totalStrain = totalStrainMultiplier * (currSnapStrain + currFlowStrain + currOtherStrain);
+                double totalStrain = totalStrainMultiplier * (Math.Max(currSnapStrain, currFlowStrain) + Math.Min(currSnapStrain, currFlowStrain) / 1.25 + currOtherStrain);
+
+// Console.WriteLine("Object: " + count);
+// Console.WriteLine("snapStrain: " + currSnapStrain);
+// Console.WriteLine("flowStrain: " + currFlowStrain);
+
+                count++;
 
                 if (currSnapStrain > currFlowStrain)
                     snapStrains.Add(totalStrain);

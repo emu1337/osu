@@ -33,8 +33,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private double avgStrainTime = 50;
 
         // Global Tap Strain Multiplier.
-        private double strainMultiplier = 1.75;
-        private double rhythmMultiplier = 0.5;
+        private double strainMultiplier = 1.725;
+        private double rhythmMultiplier = 0.625;
 
         public Tap(Mod[] mods)
             : base(mods)
