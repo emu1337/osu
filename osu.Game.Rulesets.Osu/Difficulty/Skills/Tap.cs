@@ -128,7 +128,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
             avgStrainTime /= (Previous.Count);
 
-            return Math.Sqrt(4 + rhythmComplexitySum * rhythmMultiplier) / 2;
+            return Math.Min(1.5, Math.Sqrt(4 + rhythmComplexitySum * rhythmMultiplier) / 2);
         }
 
         protected override void Process(DifficultyHitObject current)
@@ -150,10 +150,11 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
                 strainValue += strainTimeBuffRange / strainTime;
 
+
                 currentStrain *= Math.Pow(computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold), Math.Max(1, osuCurrObj.StrainTime / avgStrainTime));
                 currentStrain += (1.0 + 0.5 * osuCurrObj.SnapProbability) * strainValue * strainMultiplier;
 
-                strains.Add(currentStrain * rhythmComplexity);
+                strains.Add(currentStrain * Math.Min(1.5, rhythmComplexity));
             }
         }
 
