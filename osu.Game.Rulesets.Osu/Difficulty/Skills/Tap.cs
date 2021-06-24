@@ -150,11 +150,10 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
                 strainValue += strainTimeBuffRange / strainTime;
 
-
                 currentStrain *= Math.Pow(computeDecay(baseDecay, osuCurrObj.StrainTime, beginDecayThreshold), Math.Max(1, osuCurrObj.StrainTime / avgStrainTime));
                 currentStrain += (1.0 + 0.5 * osuCurrObj.SnapProbability) * strainValue * strainMultiplier;
 
-                strains.Add(currentStrain * Math.Min(1.5, rhythmComplexity));
+                strains.Add(currentStrain * rhythmComplexity);
             }
         }
 

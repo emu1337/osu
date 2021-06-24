@@ -14,8 +14,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 {
     public abstract class OsuSkill : Skill
     {
-        private double starRatingConstant = .58725; // 7.27* with hr
-        // private double starRatingConstant = .6752; // 7.27* without hr
+        private double starRatingConstant = .08265;
 
         protected OsuSkill(Mod[] mods) : base(mods)
         {
@@ -52,22 +51,6 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
             for (int i = 0; i < strains.Count; i++)
             {
                 SR += Math.Pow(strains[i], difficultyExponent);
-            }
-
-            return Math.Pow(SR, 1.0 / difficultyExponent);
-        }
-
-        /// <summary>
-        /// The total derived difficulty from the list of strains based on the starsPerDouble.
-        /// </summary>
-        protected double calculateRngStars(List<double> strains, double starsPerDouble, double difficulty)
-        {
-            double difficultyExponent = 1.0 / Math.Log(starsPerDouble, 2);
-            double SR = 0;
-
-            for (int i = 0; i < strains.Count; i++)
-            {
-                SR += Math.Pow((difficulty - strains[i]) / 2, difficultyExponent);
             }
 
             return Math.Pow(SR, 1.0 / difficultyExponent);

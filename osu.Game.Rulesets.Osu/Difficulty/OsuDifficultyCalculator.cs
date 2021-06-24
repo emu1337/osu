@@ -21,7 +21,6 @@ namespace osu.Game.Rulesets.Osu.Difficulty
     public class OsuDifficultyCalculator : DifficultyCalculator
     {
         private const double difficulty_multiplier = 0.18;
-        private const double display_difficulty_multiplier = 0.04;
 
         public OsuDifficultyCalculator(Ruleset ruleset, WorkingBeatmap beatmap)
             : base(ruleset, beatmap)
@@ -44,8 +43,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             double speedRating = Math.Pow(skills[1].DifficultyValue(), .75) * difficulty_multiplier;
 
             // Calculate total star rating
-            double displayAimRating = Math.Pow((skills[0] as OsuSkill).DisplayDifficultyValue(), .75) * display_difficulty_multiplier;
-            double displaySpeedRating = Math.Pow((skills[1] as OsuSkill).DisplayDifficultyValue(), .75) * display_difficulty_multiplier;
+            double displayAimRating = Math.Pow((skills[0] as OsuSkill).DisplayDifficultyValue(), .75) * difficulty_multiplier;
+            double displaySpeedRating = Math.Pow((skills[1] as OsuSkill).DisplayDifficultyValue(), .75) * difficulty_multiplier;
 
             double starRating = displayAimRating + displaySpeedRating;
 
