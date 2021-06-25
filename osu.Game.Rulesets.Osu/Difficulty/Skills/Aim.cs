@@ -68,7 +68,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
             double velVariance = .65 * (minDistance * osuCurrObj.FlowProbability * Math.Max(0, averageVel - currVector.Length));
 
-            double angularVariance = 0.5 * Math.Min(minDistance * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Max(0, osuNextObj.Angle - osuCurrObj.Angle)),
+            double angularVariance = 0.25 * Math.Min(minDistance * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Max(0, osuNextObj.Angle - osuCurrObj.Angle)),
                                               minDistance * osuCurrObj.FlowProbability * Math.Min(Math.PI / 2, Math.Max(0, osuPrevObj.Angle - osuCurrObj.Angle)));
 
             strain = (osuPrevObj.FlowProbability + osuCurrObj.FlowProbability + osuNextObj.FlowProbability)
