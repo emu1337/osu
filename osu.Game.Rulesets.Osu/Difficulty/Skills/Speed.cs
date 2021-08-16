@@ -158,7 +158,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
         protected override double GetPeakStrain(double time)
         {
-            return base.GetPeakStrain(time);// * calculateRhythmBonus(current.StartTime);
+            return base.GetPeakStrain(time) * calculateRhythmBonus(time);
         }
     }
 }
