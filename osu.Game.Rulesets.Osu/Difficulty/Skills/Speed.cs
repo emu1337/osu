@@ -20,7 +20,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private const double pi_over_4 = Math.PI / 4;
         private const double pi_over_2 = Math.PI / 2;
 
-        private const double rhythmMultiplier = 1.5;
+        private const double rhythm_multiplier = 1.5;
 
         protected override double SkillMultiplier => 1400;
         protected override double StrainDecayBase => 0.3;
@@ -33,7 +33,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
         protected override int HistoryLength => 32;
 
-        private const int HistoryTimeMax = 3000; // 4 seconds of calculatingRhythmBonus max.
+        private const int history_time_max = 3000; // 4 seconds of calculatingRhythmBonus max.
 
         public Speed(Mod[] mods)
             : base(mods)
@@ -66,7 +66,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                 if (effectiveRatio > 0.5)
                     effectiveRatio = 0.5 + (effectiveRatio - 0.5) * 5; // extra buff for 1/3 -> 1/4 etc transitions.
 
-                double currHistoricalDecay = Math.Max(0, (HistoryTimeMax - (startTime - Previous[i - 1].StartTime))) / HistoryTimeMax;
+                double currHistoricalDecay = Math.Max(0, (history_time_max - (startTime - Previous[i - 1].StartTime))) / history_time_max;
 
                 if (firstDeltaSwitch)
                 {
@@ -116,7 +116,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 
 // Console.WriteLine(Math.Sqrt(4 + rhythmComplexitySum * rhythmMultiplier) / 2);
 
-            return Math.Sqrt(4 + rhythmComplexitySum * rhythmMultiplier) / 2;
+            return Math.Sqrt(4 + rhythmComplexitySum * rhythm_multiplier) / 2;
         }
 
         protected override double StrainValueOf(DifficultyHitObject current)
