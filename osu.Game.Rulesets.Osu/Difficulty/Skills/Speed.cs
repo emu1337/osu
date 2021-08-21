@@ -29,6 +29,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private double currentTapStrain = 1;
         private double currentMovementStrain = 1;
         private double currentRhythm = 1;
+        private double totalRhythm = 1;
 
         protected override int ReducedSectionCount => 5;
         protected override double DifficultyMultiplier => 1.04;
@@ -43,6 +44,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
             : base(mods)
         {
         }
+
+        public double getTotalRhythm() => totalRhythm;
 
         private bool isRatioEqual(double ratio, double a, double b)
         {
@@ -173,6 +176,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
                 speedBonus = 1 + 0.75 * Math.Pow((min_speed_bonus - deltaTime) / speed_balancing_factor, 2);
 
             currentRhythm = calculateRhythmBonus(current);
+            totalRhythm += currentRhythm;
 
             currentTapStrain *= strainDecay(current.DeltaTime);
             currentTapStrain += tapStrainOf(current, speedBonus) * skillMultiplier;

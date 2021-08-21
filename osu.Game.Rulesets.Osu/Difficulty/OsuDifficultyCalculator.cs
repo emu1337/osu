@@ -49,6 +49,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             int hitCirclesCount = beatmap.HitObjects.Count(h => h is HitCircle);
             int spinnerCount = beatmap.HitObjects.Count(h => h is Spinner);
+            int sliderCount = beatmap.HitObjects.Count(h => h is Slider);
+
+            double accuracyRating = ((Speed)skills[1]).getTotalRhythm() / (hitCirclesCount + sliderCount);
 
             return new OsuDifficultyAttributes
             {
@@ -56,6 +59,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 Mods = mods,
                 AimStrain = aimRating,
                 SpeedStrain = speedRating,
+                AccuracyRating = accuracyRating,
                 ApproachRate = preempt > 1200 ? (1800 - preempt) / 120 : (1200 - preempt) / 150 + 5,
                 OverallDifficulty = (80 - hitWindowGreat) / 6,
                 MaxCombo = maxCombo,

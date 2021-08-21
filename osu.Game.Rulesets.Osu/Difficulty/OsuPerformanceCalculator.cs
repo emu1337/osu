@@ -177,6 +177,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             if (amountHitObjectsWithAccuracy == 0)
                 return 0;
 
+            double accuracyRating = Attributes.AccuracyRating;
+
             // This section should be documented by Tr3, but effectively we're calculating the exact same way as before, but
             // we calculate a variance based on the object count and # of 50s, 100s, etc. This prevents us from having cases
             // where an SS on lower OD is actually worth more than a 95% on OD11, even though the OD11 requires a greater
@@ -204,7 +206,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             if (mods.Any(m => m is OsuModFlashlight))
                 accuracyValue *= 1.02;
 
-            return accuracyValue;
+            return accuracyValue * accuracyRating;
         }
 
         private int totalHits => countGreat + countOk + countMeh + countMiss;
